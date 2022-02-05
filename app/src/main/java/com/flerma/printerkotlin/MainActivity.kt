@@ -55,6 +55,8 @@ class MainActivity : AppCompatActivity() {
 
     private val DEF_PRINTER_HUE_VALUE = 0
 
+
+
     private val PRNSTS_OK = 0 //OK
 
     private val PRNSTS_OUT_OF_PAPER = -1 //Out of paper
@@ -80,15 +82,6 @@ class MainActivity : AppCompatActivity() {
         if (mPrinterManager != null) {
             mPrinterManager!!.close()
         }
-    }
-
-    override fun onResume() {
-        // TODO Auto-generated method stub
-        super.onResume()
-        mBtnPrnText!!.isEnabled = true
-        mBtnPrnBitmap!!.isEnabled = true
-        mBtnPrnBarcode!!.isEnabled = true
-        mBtnForWard!!.isEnabled = true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -227,7 +220,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun doPrint(printerManager: PrinterManager, type: Int, content: Any) {
-        var ret = printerManager.status //Get printer status
+        var ret = printerManager.status
         if (ret == PRNSTS_OK) {
             printerManager.setupPage(384, -1) //Set paper size
             when (type) {
@@ -378,7 +371,8 @@ class MainActivity : AppCompatActivity() {
                 PRINT_BITMAP -> {
                     val bitmap = content as Bitmap
                     if (bitmap != null) {
-                        printerManager.drawBitmap(bitmap, 30, 0) //print pictures
+                        //x era 30
+                        printerManager.drawBitmap(bitmap, 0, 0) //print pictures
                     } else {
                         Toast.makeText(this, "Picture is null", Toast.LENGTH_SHORT).show()
                     }
