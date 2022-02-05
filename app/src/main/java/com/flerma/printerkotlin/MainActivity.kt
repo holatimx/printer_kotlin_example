@@ -10,10 +10,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.provider.MediaStore
-import android.text.InputType
 import android.util.Log
 import android.view.View
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.concurrent.thread
 
@@ -29,11 +30,11 @@ class MainActivity : AppCompatActivity() {
             : EditText? = null
     var mBtnPrnText //Printed text
             : Button? = null
-     var mBtnPrnBitmap //print pictures
+    var mBtnPrnBitmap //print pictures
             : Button? = null
-     var mBtnPrnBarcode //Print bar code
+    var mBtnPrnBarcode //Print bar code
             : Button? = null
-     var mBtnForWard //Forward (paper feed)
+    var mBtnForWard //Forward (paper feed)
             : Button? = null
     var mBtnPrnTicket //Printed text
             : Button? = null
@@ -68,8 +69,8 @@ class MainActivity : AppCompatActivity() {
 
     private val PRNSTS_ERR_DRIVER = -257 //Printer Driver error
 
-     var mPrinterHue = DEF_PRINTER_HUE_VALUE
-     var mPrinterSpeed = 0
+    var mPrinterHue = DEF_PRINTER_HUE_VALUE
+    var mPrinterSpeed = 0
 
     private val PHOTO_REQUEST_CODE = 200
 
@@ -97,16 +98,19 @@ class MainActivity : AppCompatActivity() {
             Looper.prepare()
             mPrintHandler = object : Handler() {
                 override fun handleMessage(msg: Message) {
-                    when (msg.what) {
-                        PRINT_TEXT, PRINT_BITMAP, PRINT_BARCOD -> doPrint(
-                            getPrinterManager()!!,
-                            msg.what,
-                            msg.obj
-                        ) //Print
-                        PRINT_FORWARD -> {
-                            getPrinterManager()!!.paperFeed(20)
-                            updatePrintStatus(100)
+                    try {
+                        when (msg.what) {
+                            PRINT_TEXT, PRINT_BITMAP, PRINT_BARCOD -> doPrint(
+                                getPrinterManager()!!,
+                                msg.what,
+                                msg.obj
+                            ) //Print
+                            PRINT_FORWARD -> {
+                                getPrinterManager()!!.paperFeed(30)
+                                updatePrintStatus(100)
+                            }
                         }
+                    } catch (e: RuntimeException) {
                     }
                 }
             }
@@ -118,10 +122,6 @@ class MainActivity : AppCompatActivity() {
 
         //****************TEXT****************
         mBtnPrnText!!.setOnClickListener(View.OnClickListener {
-            mBtnPrnBitmap!!.isEnabled = false
-            mBtnPrnBarcode!!.isEnabled = false
-            mBtnForWard!!.isEnabled = false
-            mBtnPrnText!!.setEnabled(false)
             var content = printInfo!!.getText().toString()
             if (content == null || content == "") {
                 content = """
@@ -139,10 +139,6 @@ class MainActivity : AppCompatActivity() {
         //****************FORWARD****************
         mBtnForWard = findViewById(R.id.btn_FORWARD) as Button
         mBtnForWard!!.setOnClickListener(View.OnClickListener {
-            mBtnPrnBitmap!!.isEnabled = false
-            mBtnPrnBarcode!!.isEnabled = false
-            mBtnForWard!!.setEnabled(false)
-            mBtnPrnText!!.setEnabled(false)
             mPrintHandler!!.obtainMessage(PRINT_FORWARD).sendToTarget()
         })
 
@@ -155,12 +151,6 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton(
                     R.string.mci_select_cancel
                 ) { dialog, which ->
-                    mBtnPrnBitmap!!.setEnabled(false)
-                    mBtnPrnBarcode!!.isEnabled = false
-                    mBtnForWard!!.setEnabled(false)
-                    mBtnPrnText!!.setEnabled(false)
-
-                    //Start the picture selector, select the picture and continue processing in onactivityresult
                     val intent =
                         Intent(
                             Intent.ACTION_OPEN_DOCUMENT,
@@ -174,12 +164,6 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton(
                     R.string.mci_select_ok
                 ) { dialog, which ->
-                    mBtnPrnBitmap!!.setEnabled(false)
-                    mBtnPrnBarcode!!.isEnabled = false
-                    mBtnForWard!!.setEnabled(false)
-                    mBtnPrnText!!.setEnabled(false)
-
-                    //Print a default picture
                     val opts = BitmapFactory.Options()
                     opts.inPreferredConfig = Bitmap.Config.ARGB_8888
                     opts.inDensity = resources.displayMetrics.densityDpi
@@ -198,10 +182,6 @@ class MainActivity : AppCompatActivity() {
         mBtnPrnBarcode!!.setOnClickListener(View.OnClickListener {
             val messgae = printInfo!!.getText().toString()
             if (messgae.length > 0) {
-                mBtnPrnBitmap!!.setEnabled(false)
-                mBtnPrnBarcode!!.setEnabled(false)
-                mBtnForWard!!.setEnabled(false)
-                mBtnPrnText!!.setEnabled(false)
                 val msg = mPrintHandler!!.obtainMessage(PRINT_BARCOD)
                 msg.obj = messgae
                 msg.sendToTarget()
@@ -215,28 +195,16 @@ class MainActivity : AppCompatActivity() {
 
         mBtnPrnTicket = findViewById(R.id.btn_prnTicket) as Button
 
-        //****************TEXT****************
-        mBtnPrnText!!.setOnClickListener(View.OnClickListener {
-            mBtnPrnBitmap!!.isEnabled = false
-            mBtnPrnBarcode!!.isEnabled = false
-            mBtnForWard!!.isEnabled = false
-            mBtnPrnText!!.setEnabled(false)
-            var content = printInfo!!.getText().toString()
-            if (content == null || content == "") {
-                content = """
-            AQUI IRIA LOGO
-            
-            
-            Aqui iria mucho texto del ticket
-            1 Pesito
-            2 Tanques llenados
-            
-            
-            EL CODIGO QR
-            """.trimIndent()
-            }
-            val msg = mPrintHandler!!.obtainMessage(PRINT_TEXT)
-            msg.obj = content
+        //****************TICKET****************
+        mBtnPrnTicket!!.setOnClickListener(View.OnClickListener {
+            val opts = BitmapFactory.Options()
+            opts.inPreferredConfig = Bitmap.Config.ARGB_8888
+            opts.inDensity = resources.displayMetrics.densityDpi
+            opts.inTargetDensity = resources.displayMetrics.densityDpi
+            val bitmap =
+                BitmapFactory.decodeResource(resources, R.drawable.ticket_example, opts)
+            val msg = mPrintHandler!!.obtainMessage(PRINT_BITMAP)
+            msg.obj = bitmap
             msg.sendToTarget()
         })
 
@@ -244,11 +212,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getPrinterManager(): PrinterManager? {
-        if (mPrinterManager == null) {
-            mPrinterManager = PrinterManager()
-            mPrinterManager?.open()
+        try {
+            if (mPrinterManager == null) {
+                mPrinterManager = PrinterManager()
+                mPrinterManager?.open()
+            }
+            return mPrinterManager
+        }catch (e: RuntimeException) {
+            mPrinterManager = null
+            Toast.makeText(this, "Dispositivo android sin impresora", Toast.LENGTH_SHORT).show()
         }
-        return mPrinterManager
+        return null
     }
 
 
